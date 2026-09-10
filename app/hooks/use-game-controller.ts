@@ -27,6 +27,18 @@ export function useGameController() {
   const engineFenRef = useRef<string | null>(null);
   const { speak } = useVoiceOutput();
 
+  const recreateEngine = useCallback(() => {
+    engineRef.current?.dispose();
+    engineRef.current = new StockfishAdapter();
+  }, []);
+
+  const cloneGame = useCallback((source: Chess) => {
+    const clone = new Chess();
+    const pgnText = source.pgn();
+    if (pgnText) clone.loadPgn(pgnText);
+    return clone;
+  }, []);
+
   const options =
     preset === "Custom"
       ? {
@@ -54,6 +66,18 @@ export function useGameController() {
   );
 
   const lastMove = history.at(-1);
+  const pgn = useMemo(
+    () =>
+      history
+        .reduce((moves, move, index) => {
+          const moveNumber = Math.floor(index / 2) + 1;
+          return index % 2 === 0
+            ? `${moves}${moveNumber}. ${move.san}`
+            : `${moves} ${move.san} `;
+        }, "")
+        .trim(),
+    [history],
+  );
 
   const commitGame = useCallback(
     (next: Chess) => {
@@ -72,19 +96,38 @@ export function useGameController() {
       setIsThinking(true);
       setStatus("Thinking…");
       try {
-        const engine = engineRef.current;
-        if (!engine) throw new Error("Engine unavailable");
-
         let botMove: Move | null = null;
         let committed = false;
         let lastError: Error | null = null;
 
-        for (let attempt = 1; attempt <= 2 && !committed; attempt += 1) {
+        const maxAttempts = 3;
+        for (
+          let attempt = 1;
+          attempt <= maxAttempts && !committed;
+          attempt += 1
+        ) {
           try {
-            const best = await engine.getBestMove(position.fen(), options);
+            const activeEngine = engineRef.current;
+            if (!activeEngine) {
+              throw new Error("Stockfish worker is unavailable");
+            }
+
+            const best = await activeEngine.getBestMove(position.fen(), options);
             if (!best) throw new Error("Engine returned no move");
 
-            const bot = new Chess(position.fen());
+            const legalMoves = position.moves({ verbose: true }) as Move[];
+            const isLegal = legalMoves.some(
+              (move) =>
+                move.from === best.slice(0, 2) &&
+                move.to === best.slice(2, 4) &&
+                (best[4] ? move.promotion === best[4] : true),
+            );
+
+            if (!isLegal) {
+              throw new Error(`Engine returned illegal move: ${best}`);
+            }
+
+            const bot = cloneGame(position);
             const nextMove = bot.move({
               from: best.slice(0, 2),
               to: best.slice(2, 4),
@@ -107,6 +150,10 @@ export function useGameController() {
               fen: position.fen(),
               message: lastError.message,
             });
+
+            if (attempt < maxAttempts) {
+              recreateEngine();
+            }
           }
         }
 
@@ -133,13 +180,13 @@ export function useGameController() {
         setIsThinking(false);
       }
     },
-    [commitGame, options, soundOn, speak, voice],
+    [cloneGame, commitGame, options, recreateEngine, soundOn, speak, voice],
   );
 
   const playHumanMove = useCallback(
     async (from: string, to: string, promotion?: string) => {
       if (isThinking || !isPlayerTurn || game.isGameOver()) return;
-      const next = new Chess(game.fen());
+      const next = cloneGame(game);
       try {
         next.move({ from, to, promotion: promotion ?? "q" });
       } catch {
@@ -148,7 +195,7 @@ export function useGameController() {
       }
       commitGame(next);
     },
-    [commitGame, game, isPlayerTurn, isThinking],
+    [cloneGame, commitGame, game, isPlayerTurn, isThinking],
   );
 
   const handleSquare = useCallback(
@@ -183,8 +230,9 @@ export function useGameController() {
       setSelected(null);
       setStatus(nextColor === "w" ? "Your move" : "Thinking…");
       setIsThinking(false);
+      recreateEngine();
     },
-    [side],
+    [recreateEngine, side],
   );
 
   const changeSide = useCallback(
@@ -263,6 +311,7 @@ export function useGameController() {
     options,
     orientedBoard,
     lastMove,
+    pgn,
     setPreset,
     setCustomSkill,
     setVoice,

@@ -45,6 +45,7 @@ export function GameView() {
             voice={controller.voice}
             transcript={controller.transcript}
             history={controller.history}
+            pgn={controller.pgn}
             isThinking={controller.isThinking}
             isListening={controller.isListening}
             supported={controller.supported}

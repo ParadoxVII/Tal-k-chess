@@ -19,6 +19,7 @@ type GameSidebarProps = {
   voice: string;
   transcript: string;
   history: Move[];
+  pgn: string;
   isThinking: boolean;
   isListening: boolean;
   supported: boolean;
@@ -37,6 +38,7 @@ export function GameSidebar({
   voice,
   transcript,
   history,
+  pgn,
   isThinking,
   isListening,
   supported,
@@ -198,21 +200,7 @@ export function GameSidebar({
               Your moves will appear here.
             </p>
           ) : (
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-              {Array.from({ length: Math.ceil(history.length / 2) }, (_, i) => (
-                <div key={i} className="contents">
-                  <span className="font-mono text-xs text-muted-foreground">
-                    {i + 1}.
-                  </span>
-                  <span className="font-mono text-xs font-semibold">
-                    {history[i * 2]?.san || "—"}{" "}
-                    <span className="text-muted-foreground">
-                      {history[i * 2 + 1]?.san || ""}
-                    </span>
-                  </span>
-                </div>
-              ))}
-            </div>
+            <p className="font-mono text-xs leading-6 text-foreground">{pgn}</p>
           )}
         </div>
       </div>
