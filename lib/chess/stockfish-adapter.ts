@@ -5,7 +5,7 @@ export class StockfishAdapter implements ChessBotAdapter {
   name = 'Stockfish'
   private worker: Worker | null = null
   private options: BotOptions = {}
-  private pending: { resolve: (move: string) => void; reject: (error: Error) => void } | null = null
+  private pending: { resolve: (move: string) => void; reject: (error: Error) => void; timeout: number } | null = null
 
   constructor() {
     if (typeof Worker !== 'undefined') {
@@ -14,8 +14,10 @@ export class StockfishAdapter implements ChessBotAdapter {
         const line = String(event.data)
         const match = line.match(/^bestmove\s+([a-h][1-8][a-h][1-8][qrbn]?)/)
         if (match && this.pending) {
-          this.pending.resolve(match[1])
+          const request = this.pending
+          window.clearTimeout(request.timeout)
           this.pending = null
+          request.resolve(match[1])
         }
       }
     }
@@ -26,12 +28,22 @@ export class StockfishAdapter implements ChessBotAdapter {
   getBestMove(fen: string, options: BotOptions = {}): Promise<string> {
     this.setOptions(options)
     if (!this.worker) return Promise.reject(new Error('Stockfish worker is unavailable'))
-    if (this.pending) this.pending.reject(new Error('Engine request superseded'))
+    if (this.pending) {
+      window.clearTimeout(this.pending.timeout)
+      this.pending.reject(new Error('Engine request superseded'))
+      this.pending = null
+    }
+    const skill = Math.max(0, Math.min(20, this.options.skillLevel ?? 10))
+    const depth = Math.max(1, this.options.depth ?? 6)
+    const time = Math.max(100, this.options.timeLimitMs ?? 1200)
     return new Promise((resolve, reject) => {
-      this.pending = { resolve, reject }
-      const skill = Math.max(0, Math.min(20, this.options.skillLevel ?? 10))
-      const depth = Math.max(1, this.options.depth ?? 6)
-      const time = Math.max(100, this.options.timeLimitMs ?? 1200)
+      const timeout = window.setTimeout(() => {
+        if (this.pending?.resolve === resolve) {
+          this.pending = null
+          reject(new Error('Engine timed out'))
+        }
+      }, time + 5000)
+      this.pending = { resolve, reject, timeout }
       this.worker?.postMessage('stop')
       this.worker?.postMessage('uci')
       this.worker?.postMessage(`setoption name Skill Level value ${skill}`)
