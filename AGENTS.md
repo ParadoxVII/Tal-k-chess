@@ -28,10 +28,10 @@ This file gives coding agents quick, repository-specific context for making safe
 ## Important File Map
 - `app/page.tsx`: Route entry point.
 - `app/views/game-view.tsx`: Composes the page from modular client components.
-- `app/hooks/use-game-controller.ts`: Central game state, move handling, engine turn flow, and voice integration.
-- `app/components/game/chess-board.tsx`: Board grid and board-level actions.
-- `app/components/game/game-header.tsx`: Header and top status controls.
-- `app/components/game/game-sidebar.tsx`: Side panel controls and move history.
+- `app/hooks/use-game-controller.ts`: Central game state, move handling, undo/redo, promotion, illegal-move flash, game-over detection, engine turn flow, and voice integration.
+- `app/components/game/chess-board.tsx`: Board grid, promotion picker overlay, illegal-move flash highlight, and checkmate/draw overlay.
+- `app/components/game/game-header.tsx`: Top bar with app name, single status indicator, New Game, Mute, dark mode, and a burger-menu dropdown holding engine (side/strength) and voice (accent) settings.
+- `app/components/game/game-sidebar.tsx`: Voice control panel and move history only (engine/voice settings moved to the header burger menu).
 - `app/components/game/constants.ts`: Shared UI/game constants.
 - `lib/chess/legal-move-bot.ts`: In-process bot; picks from `chess.js` legal moves for a given FEN.
 - `lib/chess/types.ts`: Shared chess bot types.
@@ -44,13 +44,19 @@ This file gives coding agents quick, repository-specific context for making safe
 - Do not move voice hooks or the bot adapter into server components.
 - Preserve legal move validation against `chess.js` move lists.
 - Preserve board orientation behavior for white/black/random side selection.
+- Only `reset()` in `use-game-controller.ts` should assign `playerColor` — do not add a second effect/derivation from `side`, this caused a real race condition (random side desyncing board orientation) in the past.
 - The bot must always derive moves from a fresh `Chess` instance built from the current FEN — never introduce a persistent/stateful engine process that can desync from game state (this was the root cause of a past bug where a stub worker ignored the FEN entirely).
+- Undo/redo (ArrowLeft/ArrowRight) always keep the live game state stopped on the player's turn — never leave the position mid-round (i.e. on the engine's turn) after an undo/redo, or the auto-engine-move effect will immediately react.
+- There should be only one status/state indicator in the UI (the pill in `game-header.tsx`); avoid reintroducing duplicate status text elsewhere.
 
 ## UI And State Expectations
-- `app/hooks/use-game-controller.ts` controls primary game state: position, selected square, history, status text, and turn flow.
+- `app/hooks/use-game-controller.ts` controls primary game state: position, selected square, history, redo stack, pending promotion, illegal-move flash, game-over info, status text, and turn flow.
 - `app/views/game-view.tsx` should remain mostly presentational, wiring hook state/handlers into components.
 - Engine should move only when it is the bot turn and the game is not over.
 - Voice transcript should map to legal moves; illegal/unknown input should not mutate position.
+- Clicking a selected square again (or pressing Escape) deselects it; clicking another own piece re-selects instead of attempting an illegal move.
+- An illegal move attempt briefly flashes the from/to squares red (`illegalFlash` state, auto-clears) instead of silently failing.
+- Checkmate/draw shows an overlay (win/lose/draw) with a "Play again" button; the overlay is derived from `game.isCheckmate()`/`game.isDraw()`, not separate state.
 
 ## Known Constraints
 - No dedicated test suite is currently present.

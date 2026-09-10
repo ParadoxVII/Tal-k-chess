@@ -22,9 +22,20 @@ export function useGameController() {
   const [voice, setVoice] = useState("Default voice");
   const [darkMode, setDarkMode] = useState(false);
   const [voiceReady, setVoiceReady] = useState(false);
+  const [pendingPromotion, setPendingPromotion] = useState<{
+    from: string;
+    to: string;
+    color: "w" | "b";
+  } | null>(null);
+  const [redoStack, setRedoStack] = useState<Move[]>([]);
+  const [illegalFlash, setIllegalFlash] = useState<{
+    from: string;
+    to: string;
+  } | null>(null);
 
   const engineRef = useRef<LegalMoveBot | null>(null);
   const engineFenRef = useRef<string | null>(null);
+  const illegalTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { speak } = useVoiceOutput();
 
   const cloneGame = useCallback((source: Chess) => {
@@ -61,6 +72,16 @@ export function useGameController() {
   );
 
   const lastMove = history.at(-1);
+  const gameOverInfo = useMemo(() => {
+    if (game.isCheckmate()) {
+      return {
+        type: "checkmate" as const,
+        winner: (game.turn() === "w" ? "b" : "w") as "w" | "b",
+      };
+    }
+    if (game.isDraw()) return { type: "draw" as const };
+    return null;
+  }, [game]);
   const pgn = useMemo(
     () =>
       history
@@ -79,6 +100,8 @@ export function useGameController() {
       setGame(next);
       setHistory(next.history({ verbose: true }) as Move[]);
       setSelected(null);
+      setRedoStack([]);
+      setIllegalFlash(null);
       if (next.isCheckmate()) setStatus("Checkmate");
       else if (next.isDraw()) setStatus("Draw");
       else setStatus(next.turn() === playerColor ? "Your move" : "Thinking…");
@@ -138,6 +161,13 @@ export function useGameController() {
         next.move({ from, to, promotion: promotion ?? "q" });
       } catch {
         setStatus("Illegal move");
+        setSelected(null);
+        setIllegalFlash({ from, to });
+        if (illegalTimeoutRef.current) clearTimeout(illegalTimeoutRef.current);
+        illegalTimeoutRef.current = setTimeout(
+          () => setIllegalFlash(null),
+          500,
+        );
         return;
       }
       commitGame(next);
@@ -147,16 +177,117 @@ export function useGameController() {
 
   const handleSquare = useCallback(
     (square: string) => {
-      if (isThinking || !isPlayerTurn) return;
+      if (isThinking || !isPlayerTurn || pendingPromotion) return;
       if (selected) {
+        if (selected === square) {
+          setSelected(null);
+          return;
+        }
+        const ownPiece = game.get(square as any);
+        if (ownPiece?.color === playerColor) {
+          setSelected(square);
+          return;
+        }
+        const legalMoves = game.moves({ verbose: true }) as Move[];
+        const requiresPromotion = legalMoves.some(
+          (move) =>
+            move.from === selected &&
+            move.to === square &&
+            Boolean(move.promotion),
+        );
+        if (requiresPromotion) {
+          const piece = game.get(selected as any);
+          setPendingPromotion({
+            from: selected,
+            to: square,
+            color: piece?.color ?? playerColor,
+          });
+          return;
+        }
         void playHumanMove(selected, square);
         return;
       }
       const piece = game.get(square as any);
       if (piece?.color === playerColor) setSelected(square);
     },
-    [game, isPlayerTurn, isThinking, playHumanMove, playerColor, selected],
+    [
+      game,
+      isPlayerTurn,
+      isThinking,
+      pendingPromotion,
+      playHumanMove,
+      playerColor,
+      selected,
+    ],
   );
+
+  const undo = useCallback(() => {
+    if (isThinking || pendingPromotion || history.length === 0) return;
+    const next = cloneGame(game);
+    const popped: Move[] = [];
+    while (next.history().length > 0) {
+      const undone = next.undo();
+      if (!undone) break;
+      popped.push(undone as Move);
+      if (next.turn() === playerColor) break;
+    }
+    if (popped.length === 0) return;
+    const poppedChrono = [...popped].reverse();
+    setRedoStack((stack) => [...poppedChrono, ...stack]);
+    setGame(next);
+    setHistory(next.history({ verbose: true }) as Move[]);
+    setSelected(null);
+    setPendingPromotion(null);
+    setIllegalFlash(null);
+    setStatus(next.turn() === playerColor ? "Your move" : "Thinking…");
+  }, [
+    cloneGame,
+    game,
+    history.length,
+    isThinking,
+    pendingPromotion,
+    playerColor,
+  ]);
+
+  const redo = useCallback(() => {
+    if (isThinking || pendingPromotion || redoStack.length === 0) return;
+    const next = cloneGame(game);
+    let applied = 0;
+    while (applied < redoStack.length) {
+      const move = redoStack[applied];
+      const result = next.move({
+        from: move.from,
+        to: move.to,
+        promotion: move.promotion,
+      });
+      if (!result) break;
+      applied += 1;
+      if (next.turn() === playerColor) break;
+    }
+    if (applied === 0) return;
+    setRedoStack((stack) => stack.slice(applied));
+    setGame(next);
+    setHistory(next.history({ verbose: true }) as Move[]);
+    setSelected(null);
+    setPendingPromotion(null);
+    setIllegalFlash(null);
+    setStatus(next.turn() === playerColor ? "Your move" : "Thinking…");
+  }, [cloneGame, game, isThinking, pendingPromotion, playerColor, redoStack]);
+
+  const resolvePromotion = useCallback(
+    (promotion: "q" | "r" | "b" | "n") => {
+      if (!pendingPromotion) return;
+      const { from, to } = pendingPromotion;
+      setPendingPromotion(null);
+      void playHumanMove(from, to, promotion);
+    },
+    [pendingPromotion, playHumanMove],
+  );
+
+  const cancelPromotion = useCallback(() => {
+    setPendingPromotion(null);
+    setSelected(null);
+  }, []);
 
   const reset = useCallback(
     (nextSide: Side = side) => {
@@ -170,11 +301,15 @@ export function useGameController() {
               : "b";
       const fresh = new Chess();
       engineFenRef.current = null;
+      if (illegalTimeoutRef.current) clearTimeout(illegalTimeoutRef.current);
       setSide(nextSide);
       setPlayerColor(nextColor);
       setGame(fresh);
       setHistory([]);
       setSelected(null);
+      setPendingPromotion(null);
+      setRedoStack([]);
+      setIllegalFlash(null);
       setStatus(nextColor === "w" ? "Your move" : "Thinking…");
       setIsThinking(false);
     },
@@ -212,11 +347,6 @@ export function useGameController() {
   }, []);
 
   useEffect(() => {
-    if (side === "random") setPlayerColor(Math.random() > 0.5 ? "w" : "b");
-    else setPlayerColor(side === "white" ? "w" : "b");
-  }, [side]);
-
-  useEffect(() => {
     const fen = game.fen();
     if (
       !isPlayerTurn &&
@@ -236,6 +366,33 @@ export function useGameController() {
   useEffect(() => {
     if (voiceError) setStatus(voiceError);
   }, [voiceError]);
+
+  useEffect(() => {
+    return () => {
+      if (illegalTimeoutRef.current) clearTimeout(illegalTimeoutRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target && ["INPUT", "SELECT", "TEXTAREA"].includes(target.tagName)) {
+        return;
+      }
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        undo();
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault();
+        redo();
+      } else if (event.key === "Escape") {
+        if (pendingPromotion) cancelPromotion();
+        else setSelected(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [undo, redo, pendingPromotion, cancelPromotion]);
 
   return {
     game,
@@ -258,6 +415,9 @@ export function useGameController() {
     orientedBoard,
     lastMove,
     pgn,
+    pendingPromotion,
+    illegalFlash,
+    gameOverInfo,
     setPreset,
     setCustomSkill,
     setVoice,
@@ -266,6 +426,8 @@ export function useGameController() {
     reset,
     changeSide,
     handleSquare,
+    resolvePromotion,
+    cancelPromotion,
     toggleListening,
   };
 }

@@ -17,7 +17,18 @@ export function GameView() {
           darkMode={controller.darkMode}
           isThinking={controller.isThinking}
           status={controller.status}
+          soundOn={controller.soundOn}
+          side={controller.side}
+          preset={controller.preset}
+          customSkill={controller.customSkill}
+          voice={controller.voice}
           onToggleDarkMode={() => controller.setDarkMode(!controller.darkMode)}
+          onToggleSound={() => controller.setSoundOn(!controller.soundOn)}
+          onReset={controller.reset}
+          onChangeSide={controller.changeSide}
+          onChangePreset={controller.setPreset}
+          onChangeCustomSkill={controller.setCustomSkill}
+          onChangeVoice={controller.setVoice}
         />
 
         <div className="mx-auto grid max-w-[1400px] gap-8 xl:grid-cols-[minmax(540px,1fr)_360px]">
@@ -27,32 +38,24 @@ export function GameView() {
               orientedBoard={controller.orientedBoard}
               selected={controller.selected}
               lastMove={controller.lastMove}
-              isThinking={controller.isThinking}
-              voiceReady={controller.voiceReady}
-              supported={controller.supported}
-              soundOn={controller.soundOn}
+              playerColor={controller.playerColor}
+              pendingPromotion={controller.pendingPromotion}
+              illegalFlash={controller.illegalFlash}
+              gameOverInfo={controller.gameOverInfo}
               onSquareClick={controller.handleSquare}
-              onReset={controller.reset}
-              onToggleSound={() => controller.setSoundOn(!controller.soundOn)}
+              onResolvePromotion={controller.resolvePromotion}
+              onCancelPromotion={controller.cancelPromotion}
+              onPlayAgain={controller.reset}
             />
           </section>
 
           <GameSidebar
-            side={controller.side}
-            preset={controller.preset}
-            customSkill={controller.customSkill}
-            options={controller.options}
-            voice={controller.voice}
             transcript={controller.transcript}
             history={controller.history}
             pgn={controller.pgn}
             isThinking={controller.isThinking}
             isListening={controller.isListening}
             supported={controller.supported}
-            onChangeSide={controller.changeSide}
-            onChangePreset={controller.setPreset}
-            onChangeCustomSkill={controller.setCustomSkill}
-            onChangeVoice={controller.setVoice}
             onToggleListening={controller.toggleListening}
           />
         </div>

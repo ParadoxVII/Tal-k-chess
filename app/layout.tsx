@@ -9,7 +9,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Vox Chess — Voice-controlled chess",
+  title: "Tal-k Chess — Voice-controlled chess",
   description:
     "Play a focused chess match against an adjustable chess engine using your voice.",
 };
