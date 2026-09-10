@@ -10,7 +10,7 @@ This file gives coding agents quick, repository-specific context for making safe
 - Main client view: `app/views/game-view.tsx`.
 - Main game state hook: `app/hooks/use-game-controller.ts`.
 - Chess rules engine: `chess.js`.
-- Chess bot engine: Stockfish running in a Web Worker from `public/stockfish.js`.
+- Chess bot engine: in-process `LegalMoveBot` (uses `chess.js` legal-move list directly; no Worker, no UCI protocol).
 
 ## Tech Stack
 - Next.js 16
@@ -33,19 +33,18 @@ This file gives coding agents quick, repository-specific context for making safe
 - `app/components/game/game-header.tsx`: Header and top status controls.
 - `app/components/game/game-sidebar.tsx`: Side panel controls and move history.
 - `app/components/game/constants.ts`: Shared UI/game constants.
-- `lib/chess/stockfish-adapter.ts`: Stockfish worker wrapper and best-move API.
+- `lib/chess/legal-move-bot.ts`: In-process bot; picks from `chess.js` legal moves for a given FEN.
 - `lib/chess/types.ts`: Shared chess bot types.
 - `lib/voice/parse-move.ts`: Spoken-text to legal move parsing.
 - `lib/voice/use-voice-input.ts`: Browser speech recognition hook.
 - `lib/voice/use-voice-output.ts`: Speech synthesis hook.
-- `public/stockfish.js`: Worker script loaded at runtime.
 
 ## Guardrails For Changes
 - Keep browser-only APIs (`window`, `speechSynthesis`, `SpeechRecognition`, `Worker`) in client-side code.
-- Do not move voice hooks or Stockfish adapter into server components.
+- Do not move voice hooks or the bot adapter into server components.
 - Preserve legal move validation against `chess.js` move lists.
 - Preserve board orientation behavior for white/black/random side selection.
-- Maintain Stockfish timeout/supersede handling in adapter requests.
+- The bot must always derive moves from a fresh `Chess` instance built from the current FEN — never introduce a persistent/stateful engine process that can desync from game state (this was the root cause of a past bug where a stub worker ignored the FEN entirely).
 
 ## UI And State Expectations
 - `app/hooks/use-game-controller.ts` controls primary game state: position, selected square, history, status text, and turn flow.

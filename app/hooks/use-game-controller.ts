@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Chess, Move } from "chess.js";
-import { StockfishAdapter } from "@/lib/chess/stockfish-adapter";
+import { LegalMoveBot } from "@/lib/chess/legal-move-bot";
 import { parseSpokenMove } from "@/lib/voice/parse-move";
 import { useVoiceInput } from "@/lib/voice/use-voice-input";
 import { useVoiceOutput } from "@/lib/voice/use-voice-output";
@@ -23,14 +23,9 @@ export function useGameController() {
   const [darkMode, setDarkMode] = useState(false);
   const [voiceReady, setVoiceReady] = useState(false);
 
-  const engineRef = useRef<StockfishAdapter | null>(null);
+  const engineRef = useRef<LegalMoveBot | null>(null);
   const engineFenRef = useRef<string | null>(null);
   const { speak } = useVoiceOutput();
-
-  const recreateEngine = useCallback(() => {
-    engineRef.current?.dispose();
-    engineRef.current = new StockfishAdapter();
-  }, []);
 
   const cloneGame = useCallback((source: Chess) => {
     const clone = new Chess();
@@ -96,70 +91,22 @@ export function useGameController() {
       setIsThinking(true);
       setStatus("Thinking…");
       try {
-        let botMove: Move | null = null;
-        let committed = false;
-        let lastError: Error | null = null;
+        const engine = engineRef.current;
+        if (!engine) throw new Error("Engine unavailable");
 
-        const maxAttempts = 3;
-        for (
-          let attempt = 1;
-          attempt <= maxAttempts && !committed;
-          attempt += 1
-        ) {
-          try {
-            const activeEngine = engineRef.current;
-            if (!activeEngine) {
-              throw new Error("Stockfish worker is unavailable");
-            }
+        const best = await engine.getBestMove(position.fen(), options);
+        if (!best) throw new Error("Engine returned no move");
 
-            const best = await activeEngine.getBestMove(position.fen(), options);
-            if (!best) throw new Error("Engine returned no move");
+        const bot = cloneGame(position);
+        const botMove = bot.move({
+          from: best.slice(0, 2),
+          to: best.slice(2, 4),
+          promotion: best[4],
+        }) as Move | null;
 
-            const legalMoves = position.moves({ verbose: true }) as Move[];
-            const isLegal = legalMoves.some(
-              (move) =>
-                move.from === best.slice(0, 2) &&
-                move.to === best.slice(2, 4) &&
-                (best[4] ? move.promotion === best[4] : true),
-            );
+        if (!botMove) throw new Error(`Engine returned illegal move: ${best}`);
 
-            if (!isLegal) {
-              throw new Error(`Engine returned illegal move: ${best}`);
-            }
-
-            const bot = cloneGame(position);
-            const nextMove = bot.move({
-              from: best.slice(0, 2),
-              to: best.slice(2, 4),
-              promotion: best[4],
-            }) as Move | null;
-
-            if (!nextMove)
-              throw new Error(`Engine returned illegal move: ${best}`);
-
-            botMove = nextMove;
-            commitGame(bot);
-            committed = true;
-          } catch (error) {
-            lastError =
-              error instanceof Error
-                ? error
-                : new Error("Unknown engine attempt failure");
-            console.warn("Engine attempt failed", {
-              attempt,
-              fen: position.fen(),
-              message: lastError.message,
-            });
-
-            if (attempt < maxAttempts) {
-              recreateEngine();
-            }
-          }
-        }
-
-        if (!committed || !botMove) {
-          throw lastError ?? new Error("Engine could not produce a legal move");
-        }
+        commitGame(bot);
 
         if (soundOn) {
           speak(
@@ -180,7 +127,7 @@ export function useGameController() {
         setIsThinking(false);
       }
     },
-    [cloneGame, commitGame, options, recreateEngine, soundOn, speak, voice],
+    [cloneGame, commitGame, options, soundOn, speak, voice],
   );
 
   const playHumanMove = useCallback(
@@ -230,9 +177,8 @@ export function useGameController() {
       setSelected(null);
       setStatus(nextColor === "w" ? "Your move" : "Thinking…");
       setIsThinking(false);
-      recreateEngine();
     },
-    [recreateEngine, side],
+    [side],
   );
 
   const changeSide = useCallback(
@@ -261,7 +207,7 @@ export function useGameController() {
   } = useVoiceInput(onTranscript);
 
   useEffect(() => {
-    engineRef.current = new StockfishAdapter();
+    engineRef.current = new LegalMoveBot();
     return () => engineRef.current?.dispose();
   }, []);
 
