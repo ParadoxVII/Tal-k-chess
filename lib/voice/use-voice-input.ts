@@ -11,10 +11,13 @@ export function useVoiceInput(onFinalTranscript: (text: string) => void) {
   const [isListening, setIsListening] = useState(false)
   const [transcript, setTranscript] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [supported, setSupported] = useState(false)
   const recognitionRef = useRef<Recognition | null>(null)
-  const supported = typeof window !== 'undefined' && !!(window.SpeechRecognition || window.webkitSpeechRecognition)
 
-  useEffect(() => () => recognitionRef.current?.stop(), [])
+  useEffect(() => {
+    setSupported(!!(window.SpeechRecognition || window.webkitSpeechRecognition))
+    return () => recognitionRef.current?.stop()
+  }, [])
   function toggleListening() {
     if (!supported) { setError('Speech recognition is not supported here'); return }
     if (isListening) { recognitionRef.current?.stop(); setIsListening(false); return }
