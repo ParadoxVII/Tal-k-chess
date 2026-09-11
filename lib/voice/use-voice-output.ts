@@ -35,6 +35,14 @@ export function useVoiceOutput() {
     utterance.pitch = 1;
 
     const voices = ensureVoicesLoaded();
+    console.log(
+      "trying to speak with voices:",
+      voices.map((v) => v.name),
+      "preferred voice:",
+      preferredVoice,
+      "voicesloaded:",
+      voices.length,
+    );
     const match =
       voices.find((item) => item.name === preferredVoice) ?? voices[0] ?? null;
 

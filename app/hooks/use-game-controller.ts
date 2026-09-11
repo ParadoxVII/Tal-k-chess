@@ -183,6 +183,7 @@ export function useGameController() {
         commitGame(bot);
 
         if (soundOn) {
+          console.log("Speaking move:", botMove.san);
           speak(describeMove(botMove.san), voice);
         }
       } catch (error) {
