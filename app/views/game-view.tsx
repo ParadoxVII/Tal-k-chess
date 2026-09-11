@@ -39,6 +39,7 @@ export function GameView() {
           onChangeVoice={controller.setVoice}
           onChangeVoiceSilenceMs={controller.setVoiceSilenceMs}
           onChangeBoardSidebarGap={controller.setBoardSidebarGap}
+          onTestVoice={controller.testVoice}
           onChangeVoiceHotkey={controller.setVoiceHotkey}
           onChangeChessboardTheme={controller.setChessboardTheme}
         />

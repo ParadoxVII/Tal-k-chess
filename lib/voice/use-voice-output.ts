@@ -35,14 +35,6 @@ export function useVoiceOutput() {
     utterance.pitch = 1;
 
     const voices = ensureVoicesLoaded();
-    console.log(
-      "trying to speak with voices:",
-      voices.map((v) => v.name),
-      "preferred voice:",
-      preferredVoice,
-      "voicesloaded:",
-      voices.length,
-    );
     const match =
       voices.find((item) => item.name === preferredVoice) ?? voices[0] ?? null;
 
@@ -55,6 +47,7 @@ export function useVoiceOutput() {
     // Speak immediately with the best available fallback instead of waiting forever.
     try {
       synth.speak(utterance);
+      console.log("Speaking:", text, "with voice:", match?.name ?? "default");
     } catch (error) {
       logVoiceOutputError("speech synthesis failed on initial speak", {
         preferredVoice,

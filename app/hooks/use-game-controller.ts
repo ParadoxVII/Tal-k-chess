@@ -183,7 +183,6 @@ export function useGameController() {
         commitGame(bot);
 
         if (soundOn) {
-          console.log("Speaking move:", botMove.san);
           speak(describeMove(botMove.san), voice);
         }
       } catch (error) {
@@ -382,6 +381,10 @@ export function useGameController() {
     [game, playHumanMove],
   );
 
+  const testVoice = useCallback(() => {
+    speak("Talk Chess works!", voice);
+  }, [speak, voice]);
+
   const {
     isListening,
     transcript,
@@ -493,6 +496,7 @@ export function useGameController() {
     setVoiceSilenceMs,
     setBoardSidebarGap,
     setVoiceHotkey,
+    testVoice,
     reset,
     changeSide,
     handleSquare,

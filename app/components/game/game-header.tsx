@@ -36,6 +36,7 @@ type GameHeaderProps = {
   onChangeVoice: (voice: string) => void;
   onChangeVoiceSilenceMs: (ms: number) => void;
   onChangeBoardSidebarGap: (gap: number) => void;
+  onTestVoice: () => void;
   onChangeVoiceHotkey: (key: string) => void;
   onChangeChessboardTheme: (theme: string) => void;
 };
@@ -62,6 +63,7 @@ export function GameHeader({
   onChangeVoice,
   onChangeVoiceSilenceMs,
   onChangeBoardSidebarGap,
+  onTestVoice,
   onChangeVoiceHotkey,
   onChangeChessboardTheme,
 }: GameHeaderProps) {
@@ -225,6 +227,14 @@ export function GameHeader({
               <option key={item}>{item}</option>
             ))}
           </select>
+
+          <button
+            type="button"
+            onClick={onTestVoice}
+            className="mt-3 w-full rounded-lg border border-line bg-card px-3 py-2 text-sm font-semibold hover:bg-muted"
+          >
+            Test voice
+          </button>
 
           <label className="mt-4 block text-xs font-semibold text-muted-foreground">
             Listening pause length
