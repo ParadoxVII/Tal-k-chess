@@ -97,7 +97,7 @@ export const ChessBoard = ({
                           ? theme.pieces.light
                           : theme.pieces.dark,
                     }}
-                    className="select-none text-[clamp(1.5rem,6vw,4.4rem)] leading-none drop-shadow-[0_2px_1px_rgba(29,53,43,.42)]"
+                    className="select-none text-[clamp(1.75rem,10cqw,4.4rem)] leading-none drop-shadow-[0_2px_1px_rgba(29,53,43,.42)]"
                   >
                     {pieceGlyph[piece.type]}
                   </span>
