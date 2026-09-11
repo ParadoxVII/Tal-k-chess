@@ -3,12 +3,12 @@ import type { BotOptions } from "@/lib/chess/types";
 export const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
 
 export const pieceGlyph: Record<string, string> = {
-  p: "♟",
-  n: "♞",
-  b: "♝",
-  r: "♜",
-  q: "♛",
-  k: "♚",
+  p: "♟︎",
+  n: "♞︎",
+  b: "♝︎",
+  r: "♜︎",
+  q: "♛︎",
+  k: "♚︎",
 };
 
 export const voiceOptions = [
