@@ -24,6 +24,7 @@ type GameHeaderProps = {
   customSkill: number;
   voice: string;
   voiceSilenceMs: number;
+  boardSidebarGap: number;
   voiceHotkey: string;
   chessboardTheme: string;
   onToggleDarkMode: () => void;
@@ -34,6 +35,7 @@ type GameHeaderProps = {
   onChangeCustomSkill: (skill: number) => void;
   onChangeVoice: (voice: string) => void;
   onChangeVoiceSilenceMs: (ms: number) => void;
+  onChangeBoardSidebarGap: (gap: number) => void;
   onChangeVoiceHotkey: (key: string) => void;
   onChangeChessboardTheme: (theme: string) => void;
 };
@@ -48,6 +50,7 @@ export function GameHeader({
   customSkill,
   voice,
   voiceSilenceMs,
+  boardSidebarGap,
   voiceHotkey,
   chessboardTheme,
   onToggleDarkMode,
@@ -58,6 +61,7 @@ export function GameHeader({
   onChangeCustomSkill,
   onChangeVoice,
   onChangeVoiceSilenceMs,
+  onChangeBoardSidebarGap,
   onChangeVoiceHotkey,
   onChangeChessboardTheme,
 }: GameHeaderProps) {
@@ -90,7 +94,7 @@ export function GameHeader({
   }
 
   return (
-    <header className="relative mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-3 pb-8">
+    <header className="relative mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-3 pb-4">
       <div className="font-mono text-[11px] font-bold uppercase tracking-[.22em] text-brand">
         Tal-k Chess
       </div>
@@ -240,6 +244,22 @@ export function GameHeader({
           <p className="mt-1 text-[11px] text-muted-foreground">
             How long to wait after you stop talking before submitting the move.
           </p>
+
+          <label className="mt-4 block text-xs font-semibold text-muted-foreground">
+            Board spacing
+            <input
+              type="range"
+              min="4"
+              max="180"
+              step="4"
+              value={boardSidebarGap}
+              onChange={(e) => onChangeBoardSidebarGap(Number(e.target.value))}
+              className="mt-3 w-full accent-brand"
+            />
+            <span className="float-right font-mono text-brand">
+              {boardSidebarGap}px
+            </span>
+          </label>
 
           <label className="mb-2 mt-4 block text-xs font-semibold text-muted-foreground">
             Voice control hotkey

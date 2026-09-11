@@ -62,6 +62,7 @@ export function useGameController() {
   const [voiceSilenceMs, setVoiceSilenceMs] = useState(
     (defaultSettings.pauseMs as number) ?? DEFAULT_SILENCE_TIMEOUT_MS,
   );
+  const [boardSidebarGap, setBoardSidebarGap] = useState(16);
   const normalizeHotkey = (hk: any) => {
     if (!hk) return "v";
     // Accept forms like 'KeyV' or single character 'v'
@@ -480,6 +481,7 @@ export function useGameController() {
     illegalFlash,
     gameOverInfo,
     voiceSilenceMs,
+    boardSidebarGap,
     voiceHotkey,
     setPreset,
     setCustomSkill,
@@ -488,6 +490,7 @@ export function useGameController() {
     setUiThemeMode,
     setChessboardTheme,
     setVoiceSilenceMs,
+    setBoardSidebarGap,
     setVoiceHotkey,
     reset,
     changeSide,

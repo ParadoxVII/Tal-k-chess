@@ -12,7 +12,7 @@ export function GameView() {
     <main
       className={controller.darkMode ? "dark min-h-screen" : "min-h-screen"}
     >
-      <div className="min-h-screen bg-background px-5 py-6 text-foreground transition-colors md:px-10 lg:px-16">
+      <div className="min-h-screen bg-background py-4 px-4 lg:px-8 text-foreground transition-colors">
         <GameHeader
           darkMode={controller.darkMode}
           isThinking={controller.isThinking}
@@ -23,6 +23,7 @@ export function GameView() {
           customSkill={controller.customSkill}
           voice={controller.voice}
           voiceSilenceMs={controller.voiceSilenceMs}
+          boardSidebarGap={controller.boardSidebarGap}
           voiceHotkey={controller.voiceHotkey}
           chessboardTheme={controller.chessboardTheme}
           onToggleDarkMode={() =>
@@ -37,11 +38,15 @@ export function GameView() {
           onChangeCustomSkill={controller.setCustomSkill}
           onChangeVoice={controller.setVoice}
           onChangeVoiceSilenceMs={controller.setVoiceSilenceMs}
+          onChangeBoardSidebarGap={controller.setBoardSidebarGap}
           onChangeVoiceHotkey={controller.setVoiceHotkey}
           onChangeChessboardTheme={controller.setChessboardTheme}
         />
 
-        <div className="mx-auto grid max-w-[1400px] gap-8 xl:grid-cols-[minmax(540px,1fr)_360px]">
+        <div
+          className="mx-auto grid w-full max-w-[1400px] grid-cols-1 min-[600px]:grid-cols-2"
+          style={{ gap: `${controller.boardSidebarGap}px` }}
+        >
           <section className="min-w-0">
             <ChessBoard
               game={controller.game}
