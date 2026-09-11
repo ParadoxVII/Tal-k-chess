@@ -8,6 +8,7 @@ type GameSidebarProps = {
   isThinking: boolean;
   isListening: boolean;
   supported: boolean;
+  voiceHotkey: string;
   onToggleListening: () => void;
 };
 
@@ -18,6 +19,7 @@ export function GameSidebar({
   isThinking,
   isListening,
   supported,
+  voiceHotkey,
   onToggleListening,
 }: GameSidebarProps) {
   return (
@@ -48,6 +50,13 @@ export function GameSidebar({
           {isListening ? <MicOff size={19} /> : <Mic size={19} />}
         </div>
       </button>
+
+      <p className="flex items-center gap-2 px-1 text-[11px] text-muted-foreground">
+        <kbd className="rounded border border-line bg-card px-1.5 py-0.5 font-mono font-semibold">
+          {voiceHotkey.toUpperCase()}
+        </kbd>
+        Press to toggle voice control
+      </p>
 
       <div className="rounded-2xl border border-line bg-card p-5">
         <div className="mb-4 flex items-center justify-between">

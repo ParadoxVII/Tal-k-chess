@@ -3,8 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Chess, Move } from "chess.js";
 import { LegalMoveBot } from "@/lib/chess/legal-move-bot";
+import { describeMove } from "@/lib/voice/describe-move";
 import { parseSpokenMove } from "@/lib/voice/parse-move";
-import { useVoiceInput } from "@/lib/voice/use-voice-input";
+import {
+  DEFAULT_SILENCE_TIMEOUT_MS,
+  useVoiceInput,
+} from "@/lib/voice/use-voice-input";
 import { useVoiceOutput } from "@/lib/voice/use-voice-output";
 import { files, presets, Side } from "@/app/components/game/constants";
 
@@ -32,6 +36,10 @@ export function useGameController() {
     from: string;
     to: string;
   } | null>(null);
+  const [voiceSilenceMs, setVoiceSilenceMs] = useState(
+    DEFAULT_SILENCE_TIMEOUT_MS,
+  );
+  const [voiceHotkey, setVoiceHotkey] = useState("v");
 
   const engineRef = useRef<LegalMoveBot | null>(null);
   const engineFenRef = useRef<string | null>(null);
@@ -102,9 +110,18 @@ export function useGameController() {
       setSelected(null);
       setRedoStack([]);
       setIllegalFlash(null);
-      if (next.isCheckmate()) setStatus("Checkmate");
-      else if (next.isDraw()) setStatus("Draw");
-      else setStatus(next.turn() === playerColor ? "Your move" : "Thinking…");
+      if (next.isCheckmate()) {
+        const winner = next.turn() === "w" ? "b" : "w";
+        setStatus(
+          winner === playerColor
+            ? "Checkmate — you win!"
+            : "Checkmate — you lose",
+        );
+      } else if (next.isDraw()) {
+        setStatus("Draw");
+      } else {
+        setStatus(next.turn() === playerColor ? "Your move" : "Thinking…");
+      }
     },
     [playerColor],
   );
@@ -132,10 +149,7 @@ export function useGameController() {
         commitGame(bot);
 
         if (soundOn) {
-          speak(
-            `${botMove.piece === "n" ? "Knight" : botMove.piece} ${botMove.san}`,
-            voice,
-          );
+          speak(describeMove(botMove.san), voice);
         }
       } catch (error) {
         const message =
@@ -339,7 +353,7 @@ export function useGameController() {
     error: voiceError,
     toggleListening,
     supported,
-  } = useVoiceInput(onTranscript);
+  } = useVoiceInput(onTranscript, voiceSilenceMs);
 
   useEffect(() => {
     engineRef.current = new LegalMoveBot();
@@ -388,11 +402,23 @@ export function useGameController() {
       } else if (event.key === "Escape") {
         if (pendingPromotion) cancelPromotion();
         else setSelected(null);
+      } else if (event.key.toLowerCase() === voiceHotkey) {
+        event.preventDefault();
+        if (supported && !isThinking) toggleListening();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [undo, redo, pendingPromotion, cancelPromotion]);
+  }, [
+    undo,
+    redo,
+    pendingPromotion,
+    cancelPromotion,
+    supported,
+    isThinking,
+    toggleListening,
+    voiceHotkey,
+  ]);
 
   return {
     game,
@@ -418,11 +444,15 @@ export function useGameController() {
     pendingPromotion,
     illegalFlash,
     gameOverInfo,
+    voiceSilenceMs,
+    voiceHotkey,
     setPreset,
     setCustomSkill,
     setVoice,
     setSoundOn,
     setDarkMode,
+    setVoiceSilenceMs,
+    setVoiceHotkey,
     reset,
     changeSide,
     handleSquare,

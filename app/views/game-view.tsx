@@ -22,13 +22,17 @@ export function GameView() {
           preset={controller.preset}
           customSkill={controller.customSkill}
           voice={controller.voice}
+          voiceSilenceMs={controller.voiceSilenceMs}
+          voiceHotkey={controller.voiceHotkey}
           onToggleDarkMode={() => controller.setDarkMode(!controller.darkMode)}
           onToggleSound={() => controller.setSoundOn(!controller.soundOn)}
-          onReset={controller.reset}
+          onReset={() => controller.reset()}
           onChangeSide={controller.changeSide}
           onChangePreset={controller.setPreset}
           onChangeCustomSkill={controller.setCustomSkill}
           onChangeVoice={controller.setVoice}
+          onChangeVoiceSilenceMs={controller.setVoiceSilenceMs}
+          onChangeVoiceHotkey={controller.setVoiceHotkey}
         />
 
         <div className="mx-auto grid max-w-[1400px] gap-8 xl:grid-cols-[minmax(540px,1fr)_360px]">
@@ -45,7 +49,7 @@ export function GameView() {
               onSquareClick={controller.handleSquare}
               onResolvePromotion={controller.resolvePromotion}
               onCancelPromotion={controller.cancelPromotion}
-              onPlayAgain={controller.reset}
+              onPlayAgain={() => controller.reset()}
             />
           </section>
 
@@ -56,6 +60,7 @@ export function GameView() {
             isThinking={controller.isThinking}
             isListening={controller.isListening}
             supported={controller.supported}
+            voiceHotkey={controller.voiceHotkey}
             onToggleListening={controller.toggleListening}
           />
         </div>

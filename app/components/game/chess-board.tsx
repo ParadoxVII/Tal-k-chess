@@ -117,7 +117,7 @@ export function ChessBoard({
         )}
 
         {gameOverInfo && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center rounded-2xl bg-black/60 p-4 backdrop-blur-sm">
+          <div className="absolute inset-0 z-20 flex items-center justify-center rounded-2xl bg-black/60 p-4">
             <div className="animate-[pop-in_0.4s_ease-out] rounded-2xl border border-line bg-card px-8 py-7 text-center shadow-2xl">
               {gameOverInfo.type === "checkmate" ? (
                 <>

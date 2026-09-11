@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Activity,
   ChevronDown,
@@ -23,6 +23,8 @@ type GameHeaderProps = {
   preset: string;
   customSkill: number;
   voice: string;
+  voiceSilenceMs: number;
+  voiceHotkey: string;
   onToggleDarkMode: () => void;
   onToggleSound: () => void;
   onReset: () => void;
@@ -30,6 +32,8 @@ type GameHeaderProps = {
   onChangePreset: (preset: string) => void;
   onChangeCustomSkill: (skill: number) => void;
   onChangeVoice: (voice: string) => void;
+  onChangeVoiceSilenceMs: (ms: number) => void;
+  onChangeVoiceHotkey: (key: string) => void;
 };
 
 export function GameHeader({
@@ -41,6 +45,8 @@ export function GameHeader({
   preset,
   customSkill,
   voice,
+  voiceSilenceMs,
+  voiceHotkey,
   onToggleDarkMode,
   onToggleSound,
   onReset,
@@ -48,8 +54,36 @@ export function GameHeader({
   onChangePreset,
   onChangeCustomSkill,
   onChangeVoice,
+  onChangeVoiceSilenceMs,
+  onChangeVoiceHotkey,
 }: GameHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [capturingHotkey, setCapturingHotkey] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [menuOpen]);
+
+  function startCapturingHotkey() {
+    setCapturingHotkey(true);
+    const handleNextKey = (event: KeyboardEvent) => {
+      event.preventDefault();
+      window.removeEventListener("keydown", handleNextKey, true);
+      setCapturingHotkey(false);
+      if (event.key === "Escape") return;
+      const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
+      onChangeVoiceHotkey(key);
+    };
+    window.addEventListener("keydown", handleNextKey, true);
+  }
 
   return (
     <header className="relative mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-3 pb-8">
@@ -97,7 +131,10 @@ export function GameHeader({
       </div>
 
       {menuOpen && (
-        <div className="absolute right-0 top-full z-30 mt-2 w-80 max-w-[calc(100vw-2.5rem)] rounded-2xl border border-line bg-card p-5 shadow-xl">
+        <div
+          ref={menuRef}
+          className="absolute right-0 top-full z-30 mt-2 w-80 max-w-[calc(100vw-2.5rem)] rounded-2xl border border-line bg-card p-5 shadow-xl"
+        >
           <p className="mb-2 text-xs font-bold uppercase tracking-[.16em] text-muted-foreground">
             Opponent
           </p>
@@ -180,6 +217,46 @@ export function GameHeader({
               <option key={item}>{item}</option>
             ))}
           </select>
+
+          <label className="mt-4 block text-xs font-semibold text-muted-foreground">
+            Listening pause length
+            <input
+              type="range"
+              min="1000"
+              max="4000"
+              step="200"
+              value={voiceSilenceMs}
+              onChange={(e) => onChangeVoiceSilenceMs(Number(e.target.value))}
+              className="mt-3 w-full accent-brand"
+            />
+            <span className="float-right font-mono text-brand">
+              {(voiceSilenceMs / 1000).toFixed(1)}s
+            </span>
+          </label>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            How long to wait after you stop talking before submitting the move.
+          </p>
+
+          <label className="mb-2 mt-4 block text-xs font-semibold text-muted-foreground">
+            Voice control hotkey
+          </label>
+          <button
+            type="button"
+            onClick={startCapturingHotkey}
+            className="w-full rounded-lg border border-line bg-background px-3 py-2 text-left text-sm font-semibold hover:bg-muted"
+          >
+            {capturingHotkey ? (
+              "Press any key…"
+            ) : (
+              <>
+                Press{" "}
+                <kbd className="rounded border border-line bg-card px-1.5 py-0.5 font-mono">
+                  {voiceHotkey.toUpperCase()}
+                </kbd>{" "}
+                to toggle
+              </>
+            )}
+          </button>
         </div>
       )}
     </header>
