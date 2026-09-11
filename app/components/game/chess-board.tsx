@@ -1,11 +1,10 @@
 import { Chess, Move } from "chess.js";
 import { files, pieceGlyph } from "@/app/components/game/constants";
+import { chessboardThemes } from "@/app/components/game/chessboard-themes";
 
 type PendingPromotion = { from: string; to: string; color: "w" | "b" };
 type IllegalFlash = { from: string; to: string };
-type GameOverInfo =
-  | { type: "checkmate"; winner: "w" | "b" }
-  | { type: "draw" };
+type GameOverInfo = { type: "checkmate"; winner: "w" | "b" } | { type: "draw" };
 
 type ChessBoardProps = {
   game: Chess;
@@ -16,6 +15,7 @@ type ChessBoardProps = {
   pendingPromotion: PendingPromotion | null;
   illegalFlash: IllegalFlash | null;
   gameOverInfo: GameOverInfo | null;
+  chessboardTheme: string;
   onSquareClick: (square: string) => void;
   onResolvePromotion: (promotion: "q" | "r" | "b" | "n") => void;
   onCancelPromotion: () => void;
@@ -29,7 +29,7 @@ const promotionChoices = [
   { piece: "n", label: "Knight" },
 ] as const;
 
-export function ChessBoard({
+export const ChessBoard = ({
   game,
   orientedBoard,
   selected,
@@ -38,11 +38,13 @@ export function ChessBoard({
   pendingPromotion,
   illegalFlash,
   gameOverInfo,
+  chessboardTheme,
   onSquareClick,
   onResolvePromotion,
   onCancelPromotion,
   onPlayAgain,
-}: ChessBoardProps) {
+}: ChessBoardProps) => {
+  const theme = chessboardThemes[chessboardTheme] || chessboardThemes.classic;
   return (
     <section className="min-w-0">
       <div className="relative mx-auto aspect-square w-full max-w-[760px] overflow-hidden rounded-2xl border border-line bg-card p-3 shadow-[0_18px_60px_rgba(34,65,53,.08)] sm:p-5">
@@ -61,16 +63,41 @@ export function ChessBoard({
                 key={square}
                 onClick={() => onSquareClick(square)}
                 aria-label={`${square}${piece ? ` ${piece.color === "w" ? "white" : "black"} ${piece.type}` : ""}`}
-                className={`relative flex aspect-square min-h-0 items-center justify-center transition-colors ${light ? "bg-board-light" : "bg-board-dark"} ${isLast ? "shadow-[inset_0_0_0_4px_rgba(230,184,92,.62)]" : ""} ${isSelected ? "shadow-[inset_0_0_0_5px_#0d7560]" : ""} ${isIllegal ? "animate-[illegal-flash_0.5s_ease-out] shadow-[inset_0_0_0_5px_#b94b42]" : ""}`}
+                style={{
+                  backgroundColor: light
+                    ? theme.board.lightSquare
+                    : theme.board.darkSquare,
+                  boxShadow: isLast
+                    ? "inset 0 0 0 4px rgba(230,184,92,.62)"
+                    : isSelected
+                      ? "inset 0 0 0 5px #0d7560"
+                      : isIllegal
+                        ? "inset 0 0 0 5px #b94b42"
+                        : "none",
+                  animation: isIllegal ? "illegal-flash 0.5s ease-out" : "none",
+                }}
+                className="relative flex aspect-square min-h-0 items-center justify-center transition-colors"
               >
                 <span
-                  className={`absolute left-1 top-1 font-mono text-[9px] font-bold ${light ? "text-[#789187]" : "text-[#e0eee6]"} ${Number(square[1]) === 8 ? "opacity-100" : "opacity-0"}`}
+                  style={{
+                    color: light
+                      ? theme.board.lightSquare
+                      : theme.board.darkSquare,
+                    opacity: Number(square[1]) === 8 ? 1 : 0,
+                  }}
+                  className="absolute left-1 top-1 font-mono text-[9px] font-bold"
                 >
                   {square[0]}
                 </span>
                 {piece && (
                   <span
-                    className={`select-none text-[clamp(1.75rem,7vw,4.4rem)] leading-none ${piece.color === "w" ? "text-[#f9fbf8] drop-shadow-[0_2px_1px_rgba(29,53,43,.42)]" : "text-[#173128] drop-shadow-[0_2px_1px_rgba(255,255,255,.2)]"}`}
+                    style={{
+                      color:
+                        piece.color === "w"
+                          ? theme.pieces.light
+                          : theme.pieces.dark,
+                    }}
+                    className="select-none text-[clamp(1.75rem,7vw,4.4rem)] leading-none drop-shadow-[0_2px_1px_rgba(29,53,43,.42)]"
                   >
                     {pieceGlyph[piece.type]}
                   </span>
@@ -95,11 +122,13 @@ export function ChessBoard({
                     className="flex size-14 items-center justify-center rounded-lg border border-line bg-background text-3xl hover:bg-muted"
                   >
                     <span
-                      className={
-                        pendingPromotion.color === "w"
-                          ? "text-[#f9fbf8] drop-shadow-[0_2px_1px_rgba(29,53,43,.42)]"
-                          : "text-[#173128]"
-                      }
+                      style={{
+                        color:
+                          pendingPromotion.color === "w"
+                            ? theme.pieces.light
+                            : theme.pieces.dark,
+                      }}
+                      className="drop-shadow-[0_2px_1px_rgba(29,53,43,.42)]"
                     >
                       {pieceGlyph[piece]}
                     </span>
@@ -117,7 +146,7 @@ export function ChessBoard({
         )}
 
         {gameOverInfo && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center rounded-2xl bg-black/60 p-4">
+          <div className="absolute inset-0 z-20 flex items-center justify-center rounded-2xl p-4">
             <div className="animate-[pop-in_0.4s_ease-out] rounded-2xl border border-line bg-card px-8 py-7 text-center shadow-2xl">
               {gameOverInfo.type === "checkmate" ? (
                 <>
@@ -154,4 +183,4 @@ export function ChessBoard({
       </div>
     </section>
   );
-}
+};

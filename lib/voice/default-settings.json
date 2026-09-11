@@ -1,0 +1,14 @@
+{
+  "preferredAsrSource": "browser",
+  "engine": "LegalMoveBot",
+  "difficulty": "medium",
+  "uiThemeMode": "system",
+  "chessboardTheme": "classic",
+  "muted": false,
+  "speakMoves": true,
+  "preferredVoice": "Samantha",
+  "hotkeys": {
+    "toggleVoice": "KeyV"
+  },
+  "pauseMs": 2200
+}

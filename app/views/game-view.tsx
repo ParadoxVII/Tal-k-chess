@@ -24,7 +24,12 @@ export function GameView() {
           voice={controller.voice}
           voiceSilenceMs={controller.voiceSilenceMs}
           voiceHotkey={controller.voiceHotkey}
-          onToggleDarkMode={() => controller.setDarkMode(!controller.darkMode)}
+          chessboardTheme={controller.chessboardTheme}
+          onToggleDarkMode={() =>
+            controller.setUiThemeMode(
+              controller.uiThemeMode === "dark" ? "light" : "dark",
+            )
+          }
           onToggleSound={() => controller.setSoundOn(!controller.soundOn)}
           onReset={() => controller.reset()}
           onChangeSide={controller.changeSide}
@@ -33,6 +38,7 @@ export function GameView() {
           onChangeVoice={controller.setVoice}
           onChangeVoiceSilenceMs={controller.setVoiceSilenceMs}
           onChangeVoiceHotkey={controller.setVoiceHotkey}
+          onChangeChessboardTheme={controller.setChessboardTheme}
         />
 
         <div className="mx-auto grid max-w-[1400px] gap-8 xl:grid-cols-[minmax(540px,1fr)_360px]">
@@ -46,6 +52,7 @@ export function GameView() {
               pendingPromotion={controller.pendingPromotion}
               illegalFlash={controller.illegalFlash}
               gameOverInfo={controller.gameOverInfo}
+              chessboardTheme={controller.chessboardTheme}
               onSquareClick={controller.handleSquare}
               onResolvePromotion={controller.resolvePromotion}
               onCancelPromotion={controller.cancelPromotion}

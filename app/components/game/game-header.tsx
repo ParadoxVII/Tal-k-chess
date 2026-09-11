@@ -25,6 +25,7 @@ type GameHeaderProps = {
   voice: string;
   voiceSilenceMs: number;
   voiceHotkey: string;
+  chessboardTheme: string;
   onToggleDarkMode: () => void;
   onToggleSound: () => void;
   onReset: () => void;
@@ -34,6 +35,7 @@ type GameHeaderProps = {
   onChangeVoice: (voice: string) => void;
   onChangeVoiceSilenceMs: (ms: number) => void;
   onChangeVoiceHotkey: (key: string) => void;
+  onChangeChessboardTheme: (theme: string) => void;
 };
 
 export function GameHeader({
@@ -47,6 +49,7 @@ export function GameHeader({
   voice,
   voiceSilenceMs,
   voiceHotkey,
+  chessboardTheme,
   onToggleDarkMode,
   onToggleSound,
   onReset,
@@ -56,6 +59,7 @@ export function GameHeader({
   onChangeVoice,
   onChangeVoiceSilenceMs,
   onChangeVoiceHotkey,
+  onChangeChessboardTheme,
 }: GameHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [capturingHotkey, setCapturingHotkey] = useState(false);
@@ -257,6 +261,30 @@ export function GameHeader({
               </>
             )}
           </button>
+
+          <hr className="my-4 border-line" />
+
+          <p className="mb-2 text-xs font-bold uppercase tracking-[.16em] text-muted-foreground">
+            Board
+          </p>
+          <label
+            className="mb-2 block text-xs font-semibold text-muted-foreground"
+            htmlFor="chessboardTheme"
+          >
+            Chessboard theme
+          </label>
+          <select
+            id="chessboardTheme"
+            value={chessboardTheme}
+            onChange={(e) => onChangeChessboardTheme(e.target.value)}
+            className="w-full rounded-lg border border-line bg-background px-3 py-2 text-sm font-semibold"
+          >
+            <option value="classic">Classic</option>
+            <option value="blue">Blue</option>
+            <option value="green">Green</option>
+            <option value="dark">Dark</option>
+            <option value="solar">Solar</option>
+          </select>
         </div>
       )}
     </header>

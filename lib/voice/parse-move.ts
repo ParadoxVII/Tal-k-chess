@@ -1,66 +1,13 @@
 import { Chess } from "chess.js";
+import defaultLexicon from "./chess_speech_lexicon.json";
 
-const numberWords: Record<string, string> = {
-  one: "1",
-  won: "1",
-  two: "2",
-  three: "3",
-  free: "3",
-  four: "4",
-  fore: "4",
-  for: "4",
-  five: "5",
-  six: "6",
-  seven: "7",
-  eight: "8",
-  ate: "8",
-};
-
-const fileWords: Record<string, string> = {
-  alpha: "a",
-  apple: "a",
-  bravo: "b",
-  bee: "b",
-  be: "b",
-  charlie: "c",
-  sea: "c",
-  see: "c",
-  cee: "c",
-  delta: "d",
-  dee: "d",
-  echo: "e",
-  foxtrot: "f",
-  eff: "f",
-  golf: "g",
-  gee: "g",
-  hotel: "h",
-  aitch: "h",
-};
-
-const pieces: Record<string, string> = {
-  king: "k",
-  kings: "k",
-  queen: "q",
-  queens: "q",
-  rook: "r",
-  route: "r",
-  tellher: "r",
-  rooks: "r",
-  rock: "r",
-  rocks: "r",
-  tower: "r",
-  towers: "r",
-  bishop: "b",
-  bishops: "b",
-  knight: "n",
-  knights: "n",
-  horse: "n",
-  horses: "n",
-  night: "n",
-  nite: "n",
-  nice: "n",
-  pawn: "p",
-  pawns: "p",
+type Lexicon = {
+  files: Record<string, string>;
+  numbers: Record<string, string>;
+  pieces: Record<string, string>;
+  fillerWords?: string[];
+  aliases?: Array<[string, string]>;
+  boosts?: Record<string, number>;
 };
 
 type LegalMove = {
@@ -70,25 +17,6 @@ type LegalMove = {
   piece: string;
   san: string;
 };
-
-const fillerWords = new Set<string>([
-  "to",
-  "the",
-  "takes",
-  "take",
-  "captures",
-  "capture",
-  "at",
-  "on",
-  "move",
-  "moves",
-  "goes",
-  "go",
-  "please",
-  "and",
-  "then",
-  ...Object.keys(pieces),
-]);
 
 function findCastleMove(lowerTranscript: string, legal: LegalMove[]) {
   if (!/castl/.test(lowerTranscript)) return null;
@@ -123,16 +51,11 @@ function extractTargetSquare(normalized: string[]): TargetSquare | null {
 
 type DisambiguationHint = { square?: string; file?: string; rank?: string };
 
-/**
- * Finds a leftover origin-square hint (e.g. "a1", or just "a" for the a-file,
- * or "1" for the 1st rank) among the words that were not consumed by the
- * target square, so "rook a1 to a4" or "rook a to a4" can disambiguate
- * between two rooks that could otherwise both reach a4.
- */
 function findDisambiguationHint(
   words: string[],
   normalized: string[],
   consumed: Set<number>,
+  fillerWords: Set<string>,
 ): DisambiguationHint | null {
   const candidates: number[] = [];
   for (let index = 0; index < normalized.length; index += 1) {
@@ -152,9 +75,14 @@ function findDisambiguationHint(
   return null;
 }
 
-export function parseSpokenMove(
+/**
+ * Core parser that requires a lexicon JSON to be passed in.
+ * Returns a legal move or null.
+ */
+export function parseSpokenMoveWithLexicon(
   transcript: string,
   game: Chess,
+  lexicon: Lexicon,
 ): { from: string; to: string; promotion?: string } | null {
   const lower = transcript.toLowerCase();
   const legal = game.moves({ verbose: true }) as LegalMove[];
@@ -167,8 +95,9 @@ export function parseSpokenMove(
     .split(/\s+/)
     .filter(Boolean);
   const normalized = words.map(
-    (word) => fileWords[word] ?? numberWords[word] ?? word,
+    (word) => lexicon.files[word] ?? lexicon.numbers[word] ?? word,
   );
+
   const coordinates = normalized.join("").match(/[a-h][1-8]/g) ?? [];
   if (coordinates.length >= 2)
     return (
@@ -180,16 +109,22 @@ export function parseSpokenMove(
   const target = extractTargetSquare(normalized);
   if (!target) return null;
 
-  const piece = words.map((word) => pieces[word]).find(Boolean) ?? "p";
+  const piece = words.map((word) => lexicon.pieces[word]).find(Boolean) ?? "p";
   const candidates = legal.filter(
     (move) => move.to === target.square && move.piece === piece,
   );
   if (candidates.length <= 1) return candidates[0] ?? null;
 
-  // Multiple pieces of the same type can reach this square (e.g. two rooks) —
-  // look for a leftover origin hint (full square, file, or rank) to pick the
-  // right one instead of guessing.
-  const hint = findDisambiguationHint(words, normalized, target.consumed);
+  const fillerSet = new Set<string>([
+    ...(lexicon.fillerWords ?? []),
+    ...Object.keys(lexicon.pieces),
+  ]);
+  const hint = findDisambiguationHint(
+    words,
+    normalized,
+    target.consumed,
+    fillerSet,
+  );
   if (hint?.square)
     return candidates.find((move) => move.from === hint.square) ?? null;
   if (hint?.file) {
@@ -201,4 +136,14 @@ export function parseSpokenMove(
     if (byRank.length === 1) return byRank[0];
   }
   return null;
+}
+
+// Convenience wrapper for existing call sites: uses the master/default lexicon.
+// New code should call `parseSpokenMoveWithLexicon` and supply a custom lexicon.
+export function parseSpokenMove(transcript: string, game: Chess) {
+  return parseSpokenMoveWithLexicon(
+    transcript,
+    game,
+    defaultLexicon as Lexicon,
+  );
 }

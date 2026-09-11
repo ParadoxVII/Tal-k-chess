@@ -11,20 +11,43 @@ import {
 } from "@/lib/voice/use-voice-input";
 import { useVoiceOutput } from "@/lib/voice/use-voice-output";
 import { files, presets, Side } from "@/app/components/game/constants";
+import defaultSettings from "@/lib/voice/default-settings.json";
 
 export function useGameController() {
   const [game, setGame] = useState(() => new Chess());
   const [selected, setSelected] = useState<string | null>(null);
   const [history, setHistory] = useState<Move[]>([]);
-  const [preset, setPreset] = useState("Intermediate");
+  const mapDifficultyToPreset = (d: string) => {
+    const normal = d?.toLowerCase?.();
+    if (!normal) return "Intermediate";
+    if (normal === "easy" || normal === "beginner") return "Beginner";
+    if (normal === "hard" || normal === "master") return "Master";
+    if (normal === "custom") return "Custom";
+    return "Intermediate";
+  };
+
+  const [preset, setPreset] = useState<string>(
+    mapDifficultyToPreset(defaultSettings.difficulty as string),
+  );
   const [customSkill, setCustomSkill] = useState(10);
   const [side, setSide] = useState<Side>("white");
   const [playerColor, setPlayerColor] = useState<"w" | "b">("w");
   const [isThinking, setIsThinking] = useState(false);
   const [status, setStatus] = useState("Your move");
-  const [soundOn, setSoundOn] = useState(true);
-  const [voice, setVoice] = useState("Default voice");
-  const [darkMode, setDarkMode] = useState(false);
+  const [soundOn, setSoundOn] = useState(!Boolean(defaultSettings.muted));
+  const [voice, setVoice] = useState(defaultSettings.preferredVoice);
+  const [uiThemeMode, setUiThemeMode] = useState<"light" | "dark" | "system">(
+    (defaultSettings.uiThemeMode as "light" | "dark" | "system") ?? "system",
+  );
+  const [chessboardTheme, setChessboardTheme] = useState<string>(
+    (defaultSettings.chessboardTheme as string) ?? "classic",
+  );
+  // Derive darkMode from uiThemeMode for backward compatibility with existing UI
+  const darkMode =
+    uiThemeMode === "dark" ||
+    (uiThemeMode === "system" &&
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches);
   const [voiceReady, setVoiceReady] = useState(false);
   const [pendingPromotion, setPendingPromotion] = useState<{
     from: string;
@@ -37,9 +60,19 @@ export function useGameController() {
     to: string;
   } | null>(null);
   const [voiceSilenceMs, setVoiceSilenceMs] = useState(
-    DEFAULT_SILENCE_TIMEOUT_MS,
+    (defaultSettings.pauseMs as number) ?? DEFAULT_SILENCE_TIMEOUT_MS,
   );
-  const [voiceHotkey, setVoiceHotkey] = useState("v");
+  const normalizeHotkey = (hk: any) => {
+    if (!hk) return "v";
+    // Accept forms like 'KeyV' or single character 'v'
+    if (typeof hk === "string" && hk.startsWith("Key") && hk.length === 4)
+      return hk[3].toLowerCase();
+    if (typeof hk === "string" && hk.length === 1) return hk.toLowerCase();
+    return "v";
+  };
+  const [voiceHotkey, setVoiceHotkey] = useState(
+    normalizeHotkey(defaultSettings.hotkeys?.toggleVoice),
+  );
 
   const engineRef = useRef<LegalMoveBot | null>(null);
   const engineFenRef = useRef<string | null>(null);
@@ -433,6 +466,8 @@ export function useGameController() {
     soundOn,
     voice,
     darkMode,
+    uiThemeMode,
+    chessboardTheme,
     voiceReady,
     isListening,
     transcript,
@@ -450,7 +485,8 @@ export function useGameController() {
     setCustomSkill,
     setVoice,
     setSoundOn,
-    setDarkMode,
+    setUiThemeMode,
+    setChessboardTheme,
     setVoiceSilenceMs,
     setVoiceHotkey,
     reset,
