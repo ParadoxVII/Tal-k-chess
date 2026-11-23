@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Tal-k Chess">
+  <rect width="64" height="64" rx="14" fill="#7ca895"/>
+  <g fill="#fafafa">
+    <!-- pawn -->
+    <circle cx="25" cy="18" r="7"/>
+    <path d="M18 27.5h14a1.5 1.5 0 0 1 0 3h-2.2c.6 6 2.4 10.8 5.7 15.5H14.5c3.3-4.7 5.1-9.5 5.7-15.5H18a1.5 1.5 0 0 1 0-3z"/>
+    <rect x="11" y="47" width="28" height="6" rx="2"/>
+  </g>
+  <!-- voice waves -->
+  <g fill="none" stroke="#fafafa" stroke-linecap="round" stroke-width="3.5">
+    <path d="M42 22.5a10 10 0 0 1 0 15" opacity="0.95"/>
+    <path d="M48 17a18 18 0 0 1 0 26" opacity="0.65"/>
+    <path d="M54 12a26 26 0 0 1 0 36" opacity="0.35"/>
+  </g>
+</svg>

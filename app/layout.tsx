@@ -12,6 +12,7 @@ export const metadata: Metadata = {
   title: "Tal-k Chess — Voice-controlled chess",
   description:
     "Play a focused chess match against an adjustable chess engine using your voice.",
+  icons: { icon: "/icon.svg" },
 };
 
 export default function RootLayout({
